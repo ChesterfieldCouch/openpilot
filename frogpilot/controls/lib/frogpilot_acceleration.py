@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 from numpy import searchsorted
+from openpilot.common.numpy_fast import interp
+
 
 def cubic_interp(x, xp, fp):
      """Cubic interpolation using NumPy's native operations for speed."""
@@ -17,7 +19,10 @@ def cubic_interp(x, xp, fp):
      t = (x - xp[i]) / float(xp[i+1] - xp[i])
 
      # Hermite cubic formula
-     return fp[i]*(1 - 3*t**2 + 2*t**3) + fp[i+1]*(3*t**2 - 2*t**3)
+     t2 = t*t
+     t3 = t2*t
+
+     return fp[i]*(1 - 3*t2 + 2*t3) + fp[i+1]*(3*t2 - 2*t3)
 
 def akima_interp(x, xp, fp):
      """Akima-inspired interpolation with reduced overshoot characteristics."""
@@ -25,7 +30,7 @@ def akima_interp(x, xp, fp):
          return fp[0]
      elif x >= xp[-1]:
          return fp[-1]
- 
+
      i = searchsorted(xp, x) - 1
      i = max(0, min(i, len(xp)-2))  # clamp the index
 
@@ -33,10 +38,12 @@ def akima_interp(x, xp, fp):
 
      # Quintic polynomial to reduce overshoot
      t2 = t*t
-     t4 = t2*t2
      t3 = t2*t
-     return (fp[i]*(1 - 10*t3 + 15*t4 - 6*t3*t2)
-             + fp[i+1]*(10*t3 - 15*t4 + 6*t3*t2))
+     t4 = t2*t2
+     t5 = t3*t2
+
+     return (fp[i]*(1 - 10*t3 + 15*t4 - 6*t5) + fp[i+1]*(10*t3 - 15*t4 + 6*t5))
+
 
 from openpilot.selfdrive.controls.lib.longitudinal_planner import A_CRUISE_MIN, get_max_accel
 
@@ -74,7 +81,7 @@ def get_max_accel_sport(v_ego, ev_tuning=True, truck_tuning=False):
     cruise_vals = A_CRUISE_MAX_VALS_SPORT_TRUCK
   else:
     cruise_vals = A_CRUISE_MAX_VALS_SPORT_GAS
-  return float(akima_interp(v_ego, A_CRUISE_MAX_BP_CUSTOM, cruise_vals))
+  return float(interp(v_ego, A_CRUISE_MAX_BP_CUSTOM, cruise_vals))
 
 def get_max_accel_standard(v_ego, ev_tuning=True, truck_tuning=False):
   if ev_tuning:
@@ -91,10 +98,10 @@ def get_max_accel_ramp_off(max_accel, v_cruise, v_ego):
 
 def get_max_allowed_accel(v_ego, ev_tuning=True, truck_tuning=False):
   if ev_tuning:
-    return float(akima_interp(v_ego, A_CRUISE_MAX_BP_CUSTOM, A_CRUISE_MAX_VALS_SPORT_PLUS_EV))
+    return float(interp(v_ego, A_CRUISE_MAX_BP_CUSTOM, A_CRUISE_MAX_VALS_SPORT_PLUS_EV))
   if truck_tuning:
-    return float(akima_interp(v_ego, A_CRUISE_MAX_BP_CUSTOM, A_CRUISE_MAX_VALS_SPORT_PLUS_TRUCK))
-  return float(akima_interp(v_ego, [0., 5., 20.], [4.0, 4.0, 2.0]))  # ISO 15622:2018
+    return float(interp(v_ego, A_CRUISE_MAX_BP_CUSTOM, A_CRUISE_MAX_VALS_SPORT_PLUS_TRUCK))
+  return float(interp(v_ego, [0., 5., 20.], [4.0, 4.0, 2.0]))  # ISO 15622:2018
 
 class FrogPilotAcceleration:
   def __init__(self, FrogPilotPlanner):
