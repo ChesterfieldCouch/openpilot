@@ -443,7 +443,7 @@ frogpilot_default_params: list[tuple[str, str | bytes, int, str]] = [
   ("UnlimitedLength", "1", 2, "0"),
   ("UnlockDoors", "1", 0, "0"),
   ("UpdaterAvailableBranches", "", 0, ""),
-  ("UseKonikServer", "0", 2, "0"),
+  ("UseKonikServer", "1", 2, "1"),
   ("UseSI", "1", 3, "1"),
   ("UseVienna", "0", 1, "0"),
   ("VEgoStarting", "", 3, ""),
